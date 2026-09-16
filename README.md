@@ -196,6 +196,101 @@ Every method below the top is an approximation of what a perfect experiment woul
 
 ---
 
+## Which Causal Method Should I Use?
+
+Choosing a causal inference method depends less on the algorithm and more on **how treatment was assigned**.
+
+```mermaid
+flowchart TD
+
+    A["Can you randomly assign treatment?"]
+
+    A -->|Yes| B["A/B Test / RCT"]
+    A -->|No| C{"How was treatment assigned?"}
+
+    C -->|"By a threshold / cutoff"| D["Regression Discontinuity (RDD)"]
+
+    C -->|"One group affected, another not<br/>+ before & after data"| E["Difference-in-Differences (DiD)"]
+
+    C -->|"External variable changes treatment<br/>but not outcome directly"| F["Instrumental Variables (IV / 2SLS)"]
+
+    C -->|"Selection explained by observed variables"| G{"How complex are the confounders?"}
+
+    G -->|"Moderate / interpretable"| H["Regression / Matching / IPW"]
+
+    G -->|"Many variables / nonlinear relationships"| I["Double Machine Learning (DML)"]
+
+    C -->|"Only one major unit is treated"| J["Synthetic Control"]
+
+    B --> K["Randomization identifies the causal effect"]
+    D --> L["Compare observations around the cutoff"]
+    E --> M["Compare changes in treated vs control"]
+    F --> N["Use exogenous variation in treatment"]
+    H --> O["Balance / adjust observed confounders"]
+    I --> P["ML removes complex observed confounding"]
+    J --> Q["Construct a synthetic counterfactual"]
+```
+
+### Quick Decision Guide
+
+| Method                                 | Use it when...                                                                         | What it does                                                                                                     | Key assumption                                                      |
+| -------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **A/B Test / RCT** ✅                   | You can randomly assign treatment                                                      | Directly compares randomized treatment and control groups                                                        | Correct randomization / no interference                             |
+| **Difference-in-Differences (DiD)** ✅  | You have treated + control groups and pre/post data                                    | Compares the change in the treated group against the change in the control group                                 | Parallel trends                                                     |
+| **Double Machine Learning (DML)** ✅    | Treatment is observational, confounders are observed, and relationships may be complex | Uses ML + cross-fitting + orthogonalization to remove confounding effects before estimating the treatment effect | Conditional ignorability / no important unobserved confounding      |
+| **Regression Discontinuity (RDD)**     | Treatment is assigned using a cutoff                                                   | Compares units just above and below the threshold                                                                | Units near the cutoff are comparable                                |
+| **Instrumental Variables (IV / 2SLS)** | Treatment is endogenous but a valid external instrument exists                         | Isolates exogenous variation in treatment                                                                        | Relevance + exclusion restriction                                   |
+| **Matching / Propensity Score / IPW**  | Treatment selection can be explained by observed variables                             | Makes treated and control groups more comparable based on observed covariates                                    | No unobserved confounding                                           |
+| **Synthetic Control**                  | One country, state, city, or company receives the intervention                         | Builds a weighted combination of untreated units as the counterfactual                                           | Synthetic control reproduces the treated unit well before treatment |
+
+✅ = implemented in this repository.
+
+### The Core Idea
+
+The first question should not be:
+
+> *Which causal model should I run?*
+
+It should be:
+
+> **Why did some observations receive treatment while others did not?**
+
+That assignment mechanism determines which causal strategy is credible.
+
+```text
+Random assignment                       → A/B Test / RCT
+Policy + treatment/control + pre/post   → Difference-in-Differences
+Threshold determines treatment          → Regression Discontinuity
+External source of treatment variation  → Instrumental Variables
+Observed confounding                    → Matching / IPW
+Observed + high-dimensional confounding → Double Machine Learning
+Single treated aggregate unit           → Synthetic Control
+```
+
+### Where Does DoWhy Fit?
+
+**DoWhy is not another branch of the decision tree.**
+
+It sits above the estimation method and helps structure the causal reasoning:
+
+```text
+Causal Question
+      ↓
+DAG / Assumptions
+      ↓
+Identification
+      ↓
+Choose Estimator
+      ↓
+A/B / DiD / IV / RDD / DML / ...
+      ↓
+Robustness & Refutation
+```
+
+In Notebook 03, DoWhy is used to make the causal assumptions explicit before Double ML estimates the treatment effect.
+
+---
+
 ## Why This Portfolio Matters
 
 Most DS portfolios show predictive models. This project demonstrates something harder: **causal reasoning**.
